@@ -1,10 +1,13 @@
 import cf from "cloudfront"
-const kvsIps = cf.kvs
-console.log(kvsIps)
+const kvsId = "KVS_ID"
+const kvsHandle = cf.kvs(kvsId)
 
-function handler(event) {
+async function handler(event) {
   var request = event.request
   var clientIP = event.viewer.ip
+  const allowIps = await kvsHandle.get("allowIps")
+  console.log(allowIps)
+  console.log(event)
 
   // 社内IP
   var IP_WHITE_LIST = [

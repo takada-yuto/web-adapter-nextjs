@@ -49,6 +49,8 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       {
         code: FunctionCode.fromInline(
           readFileSync("./lambda/ip-restriction.js", "utf8")
+            .replace(/\n/g, "")
+            .replace("KVS_ID", keyValueStore.keyValueStoreId)
         ),
         runtime: FunctionRuntime.JS_2_0,
         keyValueStore,
