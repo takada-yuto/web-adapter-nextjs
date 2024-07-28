@@ -9,6 +9,7 @@ async function handler(event) {
   console.log(allowIps)
   console.log(event)
   console.log(clientIP)
+  request.headers["x-client-ip"] = { value: clientIP }
 
   var isPermittedIp = allowIps.includes(clientIP)
 

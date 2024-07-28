@@ -1,6 +1,26 @@
-import Image from "next/image";
+"use client"
+import Image from "next/image"
+import { useEffect, useState } from "react"
 
 export default function Home() {
+  const url = process.env.CLOUDFRONT_URL
+  console.log(url)
+  const env = process.env
+  console.log(env)
+  const [clientIp, setClientIp] = useState("")
+
+  useEffect(() => {
+    async function fetchClientIp() {
+      const response = await fetch("/api/getClientIp")
+      console.log(response)
+      const data = await response.json()
+      console.log(data)
+      if (data.ip) {
+        setClientIp(data.ip)
+      }
+    }
+    fetchClientIp()
+  }, [])
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
@@ -109,5 +129,5 @@ export default function Home() {
         </a>
       </div>
     </main>
-  );
+  )
 }

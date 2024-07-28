@@ -1,5 +1,9 @@
 import * as cdk from "aws-cdk-lib"
 import {
+  CacheCookieBehavior,
+  CacheHeaderBehavior,
+  CachePolicy,
+  CacheQueryStringBehavior,
   FunctionCode,
   FunctionEventType,
   FunctionRuntime,
@@ -11,6 +15,10 @@ import { Construct } from "constructs"
 import { readFileSync } from "fs"
 import * as dotenv from "dotenv"
 import { RetentionDays } from "aws-cdk-lib/aws-logs"
+import { Bucket } from "aws-cdk-lib/aws-s3"
+import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment"
+import { PolicyStatement } from "aws-cdk-lib/aws-iam"
+import { v4 as uuidv4 } from "uuid"
 
 dotenv.config()
 
@@ -18,6 +26,25 @@ export class WebAdapterNextjsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
     const IP_ADRESS = process.env.IP_ADRESS
+
+    // コンテキストからバケット名を取得するか、新しいUUIDを使用してバケット名を生成
+    const uniqueBucketName = "config-bucket-web-adapter-nextjs"
+
+    // コンテキストにバケット名を保存
+    this.node.setContext("s3BucketName", uniqueBucketName)
+
+    // S3バケットの作成
+    const s3Bucket = new Bucket(this, "ConfigBucket", {
+      bucketName: uniqueBucketName,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    })
+
+    // S3バケットにenv.jsonファイルをアップロード
+    new BucketDeployment(this, "DeployConfig", {
+      sources: [Source.jsonData("env.json", { ip: IP_ADRESS })],
+      destinationBucket: s3Bucket,
+    })
 
     // Lambdaの定義
     const handler = new DockerImageFunction(this, "Handler", {
@@ -27,13 +54,28 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       memorySize: 256,
       timeout: cdk.Duration.seconds(300),
       logRetention: RetentionDays.ONE_WEEK,
+      environment: {
+        CLOUDFRONT_URL: "https://d3nr8izjox0yyx.cloudfront.net",
+      },
     })
+
+    // S3読み取り権限を持つIAMポリシーを作成
+    const s3ReadPolicy = new PolicyStatement({
+      actions: ["s3:GetObject"],
+      resources: [`${s3Bucket.bucketArn}/*`],
+    })
+
+    // Lambda関数にポリシーをアタッチ
+    handler.addToRolePolicy(s3ReadPolicy)
+    // Lambda関数にS3読み取り権限を付与
+    s3Bucket.grantRead(handler)
+
+    console.log(s3Bucket.bucketName)
 
     const keyValueStore = new cdk.aws_cloudfront.KeyValueStore(
       this,
       "KeyValueStore",
       {
-        keyValueStoreName: "ip-restriction",
         source: ImportSource.fromInline(
           JSON.stringify({
             data: [
@@ -63,6 +105,15 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       }
     )
 
+    // Custom Cache Policy
+    const customCachePolicy = new CachePolicy(this, "CustomCachePolicy", {
+      cachePolicyName: "CustomCachePolicyWithClientIP",
+      comment: "Cache policy that forwards x-client-ip header",
+      headerBehavior: CacheHeaderBehavior.allowList("x-client-ip"),
+      queryStringBehavior: CacheQueryStringBehavior.all(),
+      cookieBehavior: CacheCookieBehavior.all(),
+    })
+
     const distribution = new cdk.aws_cloudfront.Distribution(this, "Default", {
       defaultBehavior: {
         origin: new cdk.aws_cloudfront_origins.FunctionUrlOrigin(
@@ -80,9 +131,11 @@ export class WebAdapterNextjsStack extends cdk.Stack {
             function: ipRestrictionFunction,
           },
         ],
+        cachePolicy: customCachePolicy,
       },
       enableLogging: true,
       httpVersion: cdk.aws_cloudfront.HttpVersion.HTTP2_AND_3,
+      enableIpv6: false,
     })
 
     // OAC
