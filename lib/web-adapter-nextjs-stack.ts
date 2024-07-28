@@ -1,6 +1,5 @@
 import * as cdk from "aws-cdk-lib"
 import {
-  CachePolicy,
   FunctionCode,
   FunctionEventType,
   FunctionRuntime,
@@ -10,10 +9,15 @@ import { Platform } from "aws-cdk-lib/aws-ecr-assets"
 import { DockerImageCode, DockerImageFunction } from "aws-cdk-lib/aws-lambda"
 import { Construct } from "constructs"
 import { readFileSync } from "fs"
+import * as dotenv from "dotenv"
+import { RetentionDays } from "aws-cdk-lib/aws-logs"
+
+dotenv.config()
 
 export class WebAdapterNextjsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
+    const IP_ADRESS = process.env.IP_ADRESS
 
     // Lambdaの定義
     const handler = new DockerImageFunction(this, "Handler", {
@@ -22,6 +26,7 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       }),
       memorySize: 256,
       timeout: cdk.Duration.seconds(300),
+      logRetention: RetentionDays.ONE_WEEK,
     })
 
     const keyValueStore = new cdk.aws_cloudfront.KeyValueStore(
@@ -34,7 +39,7 @@ export class WebAdapterNextjsStack extends cdk.Stack {
             data: [
               {
                 key: "allowIps",
-                value: "152.165.121.190",
+                value: IP_ADRESS,
               },
             ],
           })
@@ -48,9 +53,10 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       "ipRestrictionFunction",
       {
         code: FunctionCode.fromInline(
-          readFileSync("./lambda/ip-restriction.js", "utf8")
-            .replace(/\n/g, "")
-            .replace("KVS_ID", keyValueStore.keyValueStoreId)
+          readFileSync("./lambda/ip-restriction.js", "utf8").replace(
+            "KVS_ID",
+            keyValueStore.keyValueStoreId
+          )
         ),
         runtime: FunctionRuntime.JS_2_0,
         keyValueStore,

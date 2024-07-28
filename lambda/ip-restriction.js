@@ -8,16 +8,16 @@ async function handler(event) {
   const allowIps = await kvsHandle.get("allowIps")
   console.log(allowIps)
   console.log(event)
+  console.log(clientIP)
 
-  // var isPermittedIp = IP_WHITE_LIST.includes(clientIP)
+  var isPermittedIp = allowIps.includes(clientIP)
 
-  // if (isPermittedIp) {
-  //   console.log(request)
-  //   return request
-  // }
-  // return {
-  //   statusCode: 403,
-  //   statusDescription: "Forbidden",
-  // }
-  return request
+  if (isPermittedIp) {
+    console.log(request)
+    return request
+  }
+  return {
+    statusCode: 403,
+    statusDescription: "Forbidden",
+  }
 }
