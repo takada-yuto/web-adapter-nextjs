@@ -18,7 +18,6 @@ import { RetentionDays } from "aws-cdk-lib/aws-logs"
 import { Bucket } from "aws-cdk-lib/aws-s3"
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment"
 import { PolicyStatement } from "aws-cdk-lib/aws-iam"
-import { v4 as uuidv4 } from "uuid"
 
 dotenv.config()
 
@@ -54,9 +53,6 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       memorySize: 256,
       timeout: cdk.Duration.seconds(300),
       logRetention: RetentionDays.ONE_WEEK,
-      environment: {
-        CLOUDFRONT_URL: "https://d3nr8izjox0yyx.cloudfront.net",
-      },
     })
 
     // S3読み取り権限を持つIAMポリシーを作成

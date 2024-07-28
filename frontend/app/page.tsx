@@ -3,10 +3,6 @@ import Image from "next/image"
 import { useEffect, useState } from "react"
 
 export default function Home() {
-  const url = process.env.CLOUDFRONT_URL
-  console.log(url)
-  const env = process.env
-  console.log(env)
   const [clientIp, setClientIp] = useState("")
 
   useEffect(() => {
