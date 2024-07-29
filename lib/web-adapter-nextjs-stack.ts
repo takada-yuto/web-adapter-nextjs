@@ -25,9 +25,10 @@ export class WebAdapterNextjsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
     const IP_ADRESS = process.env.IP_ADRESS
+    const BUCKET_NAME = process.env.BUCKET_NAME
 
     // コンテキストからバケット名を取得するか、新しいUUIDを使用してバケット名を生成
-    const uniqueBucketName = "config-bucket-web-adapter-nextjs"
+    const uniqueBucketName = BUCKET_NAME
 
     // コンテキストにバケット名を保存
     this.node.setContext("s3BucketName", uniqueBucketName)
