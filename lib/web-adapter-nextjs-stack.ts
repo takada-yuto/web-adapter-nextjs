@@ -33,22 +33,22 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       logRetention: RetentionDays.ONE_WEEK,
     })
 
-    const keyValueStore = new cdk.aws_cloudfront.KeyValueStore(
-      this,
-      "KeyValueStore",
-      {
-        source: ImportSource.fromInline(
-          JSON.stringify({
-            data: [
-              {
-                key: "allowIps",
-                value: IP_ADRESS,
-              },
-            ],
-          })
-        ),
-      }
-    )
+    // const keyValueStore = new cdk.aws_cloudfront.KeyValueStore(
+    //   this,
+    //   "KeyValueStore",
+    //   {
+    //     source: ImportSource.fromInline(
+    //       JSON.stringify({
+    //         data: [
+    //           {
+    //             key: "allowIps",
+    //             value: IP_ADRESS,
+    //           },
+    //         ],
+    //       })
+    //     ),
+    //   }
+    // )
 
     // CloudFrontにリクエストが来た際にIP制限を行うCloudFront Functionを作成
     const ipRestrictionFunction = new cdk.aws_cloudfront.Function(
@@ -56,13 +56,14 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       "ipRestrictionFunction",
       {
         code: FunctionCode.fromInline(
-          readFileSync("./lambda/ip-restriction.js", "utf8").replace(
-            "KVS_ID",
-            keyValueStore.keyValueStoreId
-          )
+          readFileSync("./lambda/ip-restriction.js", "utf8")
+          // .replace(
+          //   "KVS_ID",
+          //   keyValueStore.keyValueStoreId
+          // )
         ),
         runtime: FunctionRuntime.JS_2_0,
-        keyValueStore,
+        // keyValueStore,
       }
     )
 
@@ -86,12 +87,12 @@ export class WebAdapterNextjsStack extends cdk.Stack {
           cdk.aws_cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         responseHeadersPolicy:
           cdk.aws_cloudfront.ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS,
-        functionAssociations: [
-          {
-            eventType: FunctionEventType.VIEWER_REQUEST,
-            function: ipRestrictionFunction,
-          },
-        ],
+        // functionAssociations: [
+        //   {
+        //     eventType: FunctionEventType.VIEWER_REQUEST,
+        //     function: ipRestrictionFunction,
+        //   },
+        // ],
         cachePolicy: customCachePolicy,
       },
       enableLogging: true,
