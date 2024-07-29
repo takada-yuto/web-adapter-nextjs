@@ -15,9 +15,6 @@ import { Construct } from "constructs"
 import { readFileSync } from "fs"
 import * as dotenv from "dotenv"
 import { RetentionDays } from "aws-cdk-lib/aws-logs"
-import { Bucket } from "aws-cdk-lib/aws-s3"
-import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment"
-import { PolicyStatement } from "aws-cdk-lib/aws-iam"
 
 dotenv.config()
 
@@ -25,26 +22,6 @@ export class WebAdapterNextjsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
     const IP_ADRESS = process.env.IP_ADRESS
-    const BUCKET_NAME = process.env.BUCKET_NAME
-
-    // コンテキストからバケット名を取得するか、新しいUUIDを使用してバケット名を生成
-    const uniqueBucketName = BUCKET_NAME
-
-    // コンテキストにバケット名を保存
-    this.node.setContext("s3BucketName", uniqueBucketName)
-
-    // S3バケットの作成
-    const s3Bucket = new Bucket(this, "ConfigBucket", {
-      bucketName: uniqueBucketName,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
-    })
-
-    // S3バケットにenv.jsonファイルをアップロード
-    new BucketDeployment(this, "DeployConfig", {
-      sources: [Source.jsonData("env.json", { ip: IP_ADRESS })],
-      destinationBucket: s3Bucket,
-    })
 
     // Lambdaの定義
     const handler = new DockerImageFunction(this, "Handler", {
@@ -55,19 +32,6 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(300),
       logRetention: RetentionDays.ONE_WEEK,
     })
-
-    // S3読み取り権限を持つIAMポリシーを作成
-    const s3ReadPolicy = new PolicyStatement({
-      actions: ["s3:GetObject"],
-      resources: [`${s3Bucket.bucketArn}/*`],
-    })
-
-    // Lambda関数にポリシーをアタッチ
-    handler.addToRolePolicy(s3ReadPolicy)
-    // Lambda関数にS3読み取り権限を付与
-    s3Bucket.grantRead(handler)
-
-    console.log(s3Bucket.bucketName)
 
     const keyValueStore = new cdk.aws_cloudfront.KeyValueStore(
       this,
