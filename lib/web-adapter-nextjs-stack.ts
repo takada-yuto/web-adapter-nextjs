@@ -33,6 +33,7 @@ export class WebAdapterNextjsStack extends cdk.Stack {
       logRetention: RetentionDays.ONE_WEEK,
     })
 
+    // 固定コスト削減のため
     // const keyValueStore = new cdk.aws_cloudfront.KeyValueStore(
     //   this,
     //   "KeyValueStore",
